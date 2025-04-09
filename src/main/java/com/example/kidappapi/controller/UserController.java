@@ -1,13 +1,16 @@
 package com.example.kidappapi.controller;
 
 import com.example.kidappapi.model.dto.ApiResponse;
+import com.example.kidappapi.model.dto.UserRegistrationRequest;
 import com.example.kidappapi.model.entity.User;
 import com.example.kidappapi.service.UserService;
+import com.example.kidappapi.service.VerificationCodeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,14 +22,56 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    private final VerificationCodeService verificationCodeService;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, VerificationCodeService verificationCodeService) {
         this.userService = userService;
+        this.verificationCodeService = verificationCodeService;
     }
 
     /**
-     * 创建用户
+     * 带邮箱验证的用户注册
+     */
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<User>> registerUser(@Valid @RequestBody UserRegistrationRequest request) {
+        // 检查用户名是否已存在
+        if (userService.isUsernameExists(request.getUsername())) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(400, "用户名已存在"));
+        }
+        
+        // 检查邮箱是否已被注册
+        if (userService.isEmailExists(request.getEmail())) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(400, "邮箱已被注册"));
+        }
+        
+        // 验证邮箱验证码
+        boolean isCodeValid = verificationCodeService.verifyCode(request.getEmail(), request.getVerificationCode());
+        if (!isCodeValid) {
+            return ResponseEntity.badRequest()
+                    .body(ApiResponse.error(400, "验证码无效或已过期"));
+        }
+        
+        // 创建用户实体
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPassword(request.getPassword());
+        user.setEmail(request.getEmail());
+        user.setNickname(request.getNickname());
+        user.setAvatarUrl(request.getAvatarUrl());
+        user.setBackgroundUrl(request.getBackgroundUrl());
+        user.setSignature(request.getSignature());
+        
+        // 保存用户
+        User savedUser = userService.saveUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("用户注册成功", savedUser));
+    }
+
+    /**
+     * 创建用户 (旧版，不带邮箱验证)
      */
     @PostMapping
     public ResponseEntity<ApiResponse<User>> createUser(@RequestBody User user) {
@@ -106,6 +151,8 @@ public class UserController {
         user.setNickname(userDetails.getNickname());
         user.setSignature(userDetails.getSignature());
         user.setAvatarUrl(userDetails.getAvatarUrl());
+        user.setBackgroundUrl(userDetails.getBackgroundUrl());
+        user.setEmail(userDetails.getEmail());
         
         User updatedUser = userService.updateUser(user);
         return ResponseEntity.ok(ApiResponse.success("用户更新成功", updatedUser));

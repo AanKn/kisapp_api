@@ -27,6 +27,12 @@ public class User implements Serializable {
     @Column(name = "avatar_url", length = 255)
     private String avatarUrl;
 
+    @Column(name = "background_url", length = 255)
+    private String backgroundUrl;
+
+    @Column(length = 100)
+    private String email;
+
     @Column(name = "signature", length = 255)
     private String signature;
 
@@ -78,6 +84,22 @@ public class User implements Serializable {
         this.avatarUrl = avatarUrl;
     }
 
+    public String getBackgroundUrl() {
+        return backgroundUrl;
+    }
+
+    public void setBackgroundUrl(String backgroundUrl) {
+        this.backgroundUrl = backgroundUrl;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     public String getSignature() {
         return signature;
     }
@@ -127,8 +149,10 @@ public class User implements Serializable {
                 "userId=" + userId +
                 ", username='" + username + '\'' +
                 ", nickname='" + nickname + '\'' +
+                ", email='" + email + '\'' +
                 ", signature='" + signature + '\'' +
                 ", avatarUrl='" + avatarUrl + '\'' +
+                ", backgroundUrl='" + backgroundUrl + '\'' +
                 ", createTime=" + createTime +
                 ", updateTime=" + updateTime +
                 '}';
